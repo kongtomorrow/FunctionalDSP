@@ -12,21 +12,12 @@ import Foundation
 // http://faust.grame.fr/index.php/documentation/references/12-documentation/reference/48-faust-syntax-reference-art
 
 /// A block has zero or more inputs, and produces zero or more outputs
-//public protocol BlockType {
-//    typealias SignalType
-//    var inputCount: Int { get }
-//    var outputCount: Int { get }
-//    var process: [SignalType] -> [SignalType] { get }
-//    
-//    init(inputCount: Int, outputCount: Int, process: [SignalType] -> [SignalType])
-//}
-
-public struct Block<SignalType> {
+public struct Block<SampType:FloatOrDouble> {
     public let inputCount: Int
     public let outputCount: Int
-    public let process: [SignalType] -> [SignalType]
+    public let process: [Signal<SampType>] -> [Signal<SampType>]
     
-    public init(inputCount: Int, outputCount: Int, process: [SignalType] -> [SignalType]) {
+    public init(inputCount: Int, outputCount: Int, process: [Signal<SampType>] -> [Signal<SampType>]) {
         self.inputCount = inputCount
         self.outputCount = outputCount
         self.process = process
@@ -63,10 +54,10 @@ public func parallel<S>(lhs: Block<S>, rhs: Block<S>) -> Block<S> {
     let totalOutputs = lhs.outputCount + rhs.outputCount
     
     return Block(inputCount: totalInputs, outputCount: totalOutputs, process: { inputs in
-        var outputs: [S] = []
+        var outputs: [Signal<S>] = []
         
-        outputs += lhs.process(Array<S>(inputs[0..<lhs.inputCount]))
-        outputs += rhs.process(Array<S>(inputs[lhs.inputCount..<lhs.inputCount+rhs.inputCount]))
+        outputs += lhs.process(Array<Signal<S>>(inputs[0..<lhs.inputCount]))
+        outputs += rhs.process(Array<Signal<S>>(inputs[lhs.inputCount..<lhs.inputCount+rhs.inputCount]))
         
         return outputs
     })
@@ -79,18 +70,18 @@ public func parallel<S>(lhs: Block<S>, rhs: Block<S>) -> Block<S> {
 //
 
 /// Merges the outputs of the block on the left to the inputs of the block on the right
-public func merge(lhs: Block<Signal>, rhs: Block<Signal>) -> Block<Signal> {
+public func merge<SampType>(lhs: Block<SampType>, rhs: Block<SampType>) -> Block<SampType> {
     return Block(inputCount: lhs.inputCount, outputCount: rhs.outputCount, process: { inputs in
         let leftOutputs = lhs.process(inputs)
-        var rightInputs: [Signal] = []
+        var rightInputs: [Signal<SampType>] = []
 
         let k = lhs.outputCount / rhs.inputCount
         for i in 0..<rhs.inputCount  {
-            var inputsToSum = Array<Signal>()
+            var inputsToSum = Array<Signal<SampType>>()
             for j in 0..<k {
                 inputsToSum.append(leftOutputs[i+(rhs.inputCount*j)])
             }
-            let summed = inputsToSum.reduce(NullSignal) { mix($0, $1) }
+            let summed = inputsToSum.reduce(Signal<SampType>.null()) { $0.mix($1) }
             rightInputs.append(summed)
         }
 
@@ -109,7 +100,7 @@ public func merge(lhs: Block<Signal>, rhs: Block<Signal>) -> Block<Signal> {
 public func split<S>(lhs: Block<S>, rhs: Block<S>) -> Block<S> {
     return Block(inputCount: lhs.inputCount, outputCount: rhs.outputCount, process: { inputs in
         let leftOutputs = lhs.process(inputs)
-        var rightInputs: [S] = []
+        var rightInputs: [Signal<S>] = []
         
         // Replicate the channels from the lhs to each of the inputs
         let k = lhs.outputCount
@@ -144,6 +135,6 @@ public func -<<S>(lhs: Block<S>, rhs: Block<S>) -> Block<S> {
 }
 
 // Merge
-public func >-(lhs: Block<Signal>, rhs: Block<Signal>) -> Block<Signal> {
+public func >-<S>(lhs: Block<S>, rhs: Block<S>) -> Block<S> {
     return merge(lhs, rhs)
 }

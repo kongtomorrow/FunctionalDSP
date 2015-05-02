@@ -69,13 +69,13 @@ public final class AVAudioPCMBufferQueue: BufferQueueType {
 let kActiveBufferCount = 2
 let kSamplesPerBuffer = 4096
 
-public func fillFloats(floats: UnsafeMutablePointer<Float>, withSignal signal: Signal, ofLength length: Int, startingAtSample startSample: Int) {
+public func fillFloats(floats: UnsafeMutablePointer<Float>, withSignal signal: Signal<Float>, ofLength length: Int, startingAtSample startSample: Int) {
     for i in 0..<length {
-        floats[i] = signal(startSample + i)
+        floats[i] = signal[startSample + i]
     }
 }
 
-public func fillPCMBuffer(audioBuffer: AVAudioPCMBuffer, withBlock block: Block<Signal>, atStartSample startSample: Int) {
+public func fillPCMBuffer(audioBuffer: AVAudioPCMBuffer, withBlock block: Block<Float>, atStartSample startSample: Int) {
     let channelCount = Int(audioBuffer.format.channelCount)
     assert( channelCount == block.outputCount )
     
@@ -93,8 +93,8 @@ public func playTone(playerNode: AVAudioPlayerNode) {
     let channelCount = playerNode.outputFormatForBus(0).channelCount
     let audioFormat = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: channelCount)
     
-    let whiteBlock = Block(inputCount: 0, outputCount: 1, process: { _ in [whiteNoise()] })
-    let filterBlock = Block(inputCount: 1, outputCount: 1, process: { inputs in inputs.map { pinkFilter($0) } } )
+    let whiteBlock = Block(inputCount: 0, outputCount: 1, process: { _ in [Signal<Float>.whiteNoise()] })
+    let filterBlock = Block(inputCount: 1, outputCount: 1, process: { (inputs : [Signal<Float>]) in inputs.map { $0.pinkFilter() } } )
     
     let pinkNoise = whiteBlock -- filterBlock -< identity(Int(channelCount))
     

@@ -10,6 +10,8 @@ import Foundation
 import CoreAudio
 import AudioToolbox
 
+public typealias SampleType = Float
+
 func audioCallFailed(status: OSStatus) -> OSStatus? {
     if ( status != noErr ) {
         return status
