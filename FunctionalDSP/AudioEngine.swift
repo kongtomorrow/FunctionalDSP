@@ -75,7 +75,7 @@ public func fillFloats(floats: UnsafeMutablePointer<Float>, withSignal signal: S
     }
 }
 
-public func fillPCMBuffer(audioBuffer: AVAudioPCMBuffer, withBlock block: Block, atStartSample startSample: Int) {
+public func fillPCMBuffer(audioBuffer: AVAudioPCMBuffer, withBlock block: Block<Signal>, atStartSample startSample: Int) {
     let channelCount = Int(audioBuffer.format.channelCount)
     assert( channelCount == block.outputCount )
     

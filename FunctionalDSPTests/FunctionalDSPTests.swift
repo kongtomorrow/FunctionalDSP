@@ -26,7 +26,7 @@ let dtmfFrequencies = [
     ( 852.0, 1477.0 ),
 ]
 
-func dtmfTone(digit: Int, sampleRate: Int) -> Block {
+func dtmfTone(digit: Int, sampleRate: Int) -> Block<Signal> {
     assert( digit < dtmfFrequencies.count )
     let (f1, f2) = dtmfFrequencies[digit]
     
